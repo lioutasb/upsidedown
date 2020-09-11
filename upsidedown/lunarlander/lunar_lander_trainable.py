@@ -64,6 +64,11 @@ class LunarLanderTrainable(Trainable):
 
         self.model = Behavior(hidden_size=self.hidden_size, state_shape=self.env.observation_space.shape, num_actions=self.env.action_space.n,
             return_scale=self.return_scale, horizon_scale=self.horizon_scale).to(self.device)
+
+        pytorch_total_params = sum(p.numel() for p in self.model.parameters() if p.requires_grad)
+        
+        print(f'Total number of parameters: {pytorch_total_params}')
+        
         self.optimizer = torch.optim.RMSprop(self.model.parameters(), lr=self.lr)
 
         self.rb = ReplayBuffer(max_size=self.replay_size, last_few=self.last_few)
@@ -313,11 +318,15 @@ class LunarLanderTrainable(Trainable):
                 checkpoint_path)
         return checkpoint_path
 
+from wandb.ray import WandbLogger
+from ray.tune.logger import DEFAULT_LOGGERS
+
 def do_train():
-    ray.init(num_cpus=4)
+    ray.init(num_cpus=5)
    
     tune.run(
         LunarLanderTrainable,
+        loggers=DEFAULT_LOGGERS + (WandbLogger,),
         checkpoint_freq=5,
         checkpoint_at_end=True,
         config=CONFIG,
@@ -333,15 +342,18 @@ def do_play(checkpoint):
     t.play()  
 
 CONFIG = {
+    "env_config": {
+        "wandb": {"project": "upsidedown_lunarlander"}
+    },
     'seed' : None,
     'env_name': 'LunarLander-v2',
-    'num_stack' : 4,
-    'hidden_size' : 512,
+    'num_stack' : 2,
+    'hidden_size' : 1024,
 
     # Starting epsilon value for exploration
     'epsilon' : 0.1,
     # how fast to decay the epsilon to zero (X-value decays epsilon in approximately 10X steps. E.g. 100_000 decay reduces it to zero in 1_000_000 steps)            
-    'epsilon_decay' : 100_000,
+    'epsilon_decay' : 1_000,
 
     'return_scale': 0.01,
     'horizon_scale' : 0.001,

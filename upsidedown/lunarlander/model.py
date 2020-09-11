@@ -26,7 +26,12 @@ class Behavior(nn.Module):
         self.fc_dr = nn.Linear(1, hidden_size)
         self.fc_dh = nn.Linear(1, hidden_size)
         
-        self.fc1 = nn.Linear(hidden_size, hidden_size)
+        self.fc_one = nn.Linear(hidden_size, hidden_size)
+        self.fc_two = nn.Linear(hidden_size, hidden_size)
+        self.fc_three = nn.Linear(hidden_size, hidden_size)
+        self.fc_four = nn.Linear(hidden_size, hidden_size)
+
+        self.fc1 = nn.Linear(hidden_size * 4, hidden_size)
         self.fc2 = nn.Linear(hidden_size, hidden_size)
         self.fc3 = nn.Linear(hidden_size, num_actions)
 
@@ -40,7 +45,12 @@ class Behavior(nn.Module):
         output_dh = self.fc_dh(dh * self.horizon_scale)
 
         # output = torch.cat([output_dr, output_dh], 1)
-        output = output_prev_action + output_state + output_dr + output_dh
+        one = swish(self.fc_one(output_prev_action))
+        two = swish(self.fc_two(output_state))
+        three = swish(self.fc_three(output_dr))
+        four = swish(self.fc_four(output_dh))
+
+        output = torch.cat([one, two, three, four], 1)
         
         # sum1 = (output_prev_action + output_state)
         # sum2 = (output_dr + output_dh)
